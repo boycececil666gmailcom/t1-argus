@@ -89,16 +89,16 @@ def query_range(start_ts: float, end_ts: float, include_idle: bool = False) -> l
 
 
 def db_stats() -> dict:
-    """Return summary statistics about the database.
+    """Return summary statistics about the database in a single query.
 
     Returns:
         Dict with keys: total_snapshots, oldest_ts, newest_ts.
     """
     with _conn() as con:
-        total = con.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
-        oldest = con.execute("SELECT MIN(ts) FROM snapshots").fetchone()[0]
-        newest = con.execute("SELECT MAX(ts) FROM snapshots").fetchone()[0]
-    return {"total_snapshots": total, "oldest_ts": oldest, "newest_ts": newest}
+        row = con.execute(
+            "SELECT COUNT(*), MIN(ts), MAX(ts) FROM snapshots"
+        ).fetchone()
+    return {"total_snapshots": row[0], "oldest_ts": row[1], "newest_ts": row[2]}
 
 
 # endregion
