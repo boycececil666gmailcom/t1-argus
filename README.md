@@ -6,6 +6,141 @@
 
 A Python tool that silently records which app and window you have active every 5 seconds. Run it in the background, then pull up a live dashboard or a rich terminal report to see exactly where your time goes.
 
+## Screenshots
+
+Live **TUI** on Windows (`argus tui`): status strip, today’s app and category breakdown with bars, and the weekly table. Left: **Gruvbox**; right: another built-in dark theme (teal palette). Press `T` to cycle themes.
+
+![Argus TUI dashboard — Gruvbox theme](docs/screenshots/tui-dashboard-gruvbox.png)
+
+![Argus TUI dashboard — teal dark theme](docs/screenshots/tui-dashboard-teal.png)
+
+---
+
+## Quickstart
+
+### Windows
+
+```bash
+# Download dist/argus.exe and run
+argus.exe tui
+```
+
+### macOS
+
+```bash
+# Download dist/argus and run
+./argus tui
+```
+
+### Linux
+
+```bash
+# Install system dependencies first
+sudo apt install xdotool xprintidle   # Ubuntu / Debian
+sudo dnf install xdotool xprintidle   # Fedora
+
+# Download dist/argus and run
+./argus tui
+```
+
+### What to do next
+
+```bash
+# View today's activity report
+argus tui        # Interactive dashboard (recommended)
+argus report     # Text report in terminal
+
+# View specific day
+argus report --date 2026-04-05
+
+# View this week's report
+argus week
+
+# Check what you're doing right now
+argus status
+
+# Auto-start on login
+argus install    # Enable auto-start
+argus uninstall  # Disable auto-start
+```
+
+---
+
+## Keyboard shortcuts (TUI)
+
+| Key | Action |
+|---|---|
+| `R` | Refresh data immediately |
+| `T` | Cycle through colour themes |
+| `L` | Cycle through UI languages (6 languages) |
+| `A` | Toggle Auto Start |
+| `O` | Open the data folder |
+| `[` `]` | Previous / next day |
+| `{` `}` | Previous / next week |
+| `Q` | Quit |
+
+---
+
+## TUI dashboard
+
+`argus tui` opens a live full-terminal dashboard powered by [Textual](https://textual.textualize.io/). It also runs the tracker in the background — no separate `start` command needed.
+
+**What it shows**
+
+- **Status panel** — active app, category, window title, idle time, and total snapshot count
+- **Today** — top 10 apps and category breakdown with progress bars
+- **This Week** — day-by-day summary table plus weekly top apps and categories
+
+Everything auto-refreshes every 5 seconds.
+
+---
+
+## Languages
+
+The TUI supports 6 languages, cycled with `L`:
+
+`en` (English) · `ja` (日本語) · `zh` (中文) · `fr` (Français) · `de` (Deutsch) · `es` (Español)
+
+Your language choice is saved to `~/.argus/settings.json` and restored on next launch.
+
+---
+
+## Themes
+
+Press `T` in the TUI to cycle through all 12 built-in Textual themes:
+
+`textual-dark` · `textual-light` · `nord` · `gruvbox` · `catppuccin-mocha` · `catppuccin-latte` · `dracula` · `tokyo-night` · `monokai` · `solarized-dark` · `solarized-light` · `flexoki`
+
+Your theme choice is saved and restored automatically.
+
+---
+
+## Data
+
+Everything is stored in `~/.argus/argus.db` (SQLite) by default (override the folder with env `ARGUS_DATA`). One row per 5-second snapshot:
+
+| Column | Type | Description |
+|---|---|---|
+| `ts` | REAL | Unix timestamp |
+| `app_name` | TEXT | Process name (e.g. `chrome`, `code`) |
+| `window_title` | TEXT | Window title at that moment |
+| `exe_path` | TEXT | Full path to the executable |
+| `idle` | INTEGER | 1 if no input for longer than the idle threshold |
+
+Idle snapshots are excluded from all reports and the TUI by default.
+
+User preferences (language, theme) are stored separately in `~/.argus/settings.json`.
+
+---
+
+## Categories
+
+Apps are automatically bucketed into categories:
+
+`Browser` · `IDE / Editor` · `Terminal` · `Communication` · `Design` · `Gaming` · `Productivity` · `Media` · `File Manager` · `System` · `Other`
+
+To add or change mappings, edit the `CATEGORIES` dict in `argus/config.py`.
+
 ---
 
 ## Stack
@@ -23,21 +158,24 @@ A Python tool that silently records which app and window you have active every 5
 
 ---
 
-## Setup (development)
+## Setup & Building (for experienced users)
+
+> These sections are for developers who want to run from source or build their own executable.
+
+### Setup (development)
 
 ```bash
 pip install -r requirements.txt
 ```
 
 **Linux only** — install two extra system packages for window and idle detection:
+
 ```bash
 sudo apt install xdotool xprintidle   # Ubuntu / Debian
 sudo dnf install xdotool xprintidle   # Fedora
 ```
 
----
-
-## Building a standalone executable
+### Building a standalone executable
 
 Packages Argus into a single file that end users can run with no Python or pip required.
 
@@ -64,9 +202,7 @@ The executable is fully self-contained — Python, Textual, Rich, and all other 
 > sudo apt install xdotool xprintidle
 > ```
 
----
-
-## Usage (from source)
+### Usage (from source)
 
 ```bash
 # Interactive dashboard (recommended — also runs the tracker in the background)
@@ -93,107 +229,6 @@ python src/main.py install
 # Remove from auto-start
 python src/main.py uninstall
 ```
-
-### Using the built executable
-
-```bash
-argus tui
-argus report
-argus install
-# etc. — same commands, no "python src/main.py" prefix needed
-```
-
----
-
-## TUI dashboard
-
-`python main.py tui` opens a live full-terminal dashboard powered by [Textual](https://textual.textualize.io/). It also runs the tracker in the background — no separate `start` command needed.
-
-**What it shows**
-
-- **Status panel** — active app, category, window title, idle time, and total snapshot count
-- **Today** — top 10 apps and category breakdown with progress bars (◀ ▶ and **Today** jump to other calendar days)
-- **This Week** — day-by-day summary table plus weekly top apps and categories (◀ ▶ and **This week** jump to other weeks)
-
-Everything auto-refreshes every 5 seconds. While viewing **Today** / **This week**, the dashboard stays on the live calendar day and week (including after midnight).
-
-**Keyboard shortcuts**
-
-| Key | Action |
-|---|---|
-| `R` | Refresh all data immediately |
-| `T` | Cycle through colour themes |
-| `L` | Cycle through UI languages |
-| `A` | Toggle Auto Start (enable / disable login launch) |
-| `O` | Open the data folder in the file manager |
-| `[` `]` | Previous / next day (dashboard history) |
-| `{` `}` | Previous / next week (dashboard history) |
-| `Q` | Quit |
-
-**Toolbar buttons** (same actions, clickable)
-
-| Button | Action |
-|---|---|
-| `Auto Start  ON/OFF` | Toggle login auto-start |
-| `EN  English` | Cycle language |
-| `Open DB Folder` | Open data folder |
-
----
-
-## Languages
-
-The TUI supports 6 languages, cycled with `L`:
-
-| Code | Language |
-|---|---|
-| `en` | English |
-| `ja` | 日本語 |
-| `zh` | 中文 |
-| `fr` | Français |
-| `de` | Deutsch |
-| `es` | Español |
-
-Your language choice is saved to `~/.argus/settings.json` and restored on next launch.
-
----
-
-## Themes
-
-Press `T` in the TUI to cycle through all 12 built-in Textual themes (no installs needed):
-
-`textual-dark` · `textual-light` · `nord` · `gruvbox` · `catppuccin-mocha` · `catppuccin-latte` · `dracula` · `tokyo-night` · `monokai` · `solarized-dark` · `solarized-light` · `flexoki`
-
-Your theme choice is also saved and restored automatically.
-
----
-
-## Data
-
-Everything is stored in `~/.argus/argus.db` (SQLite) by default (override the folder with env `ARGUS_DATA`). One row per 5-second snapshot:
-
-Schema:
-
-| Column | Type | Description |
-|---|---|---|
-| `ts` | REAL | Unix timestamp |
-| `app_name` | TEXT | Process name (e.g. `chrome`, `code`) |
-| `window_title` | TEXT | Window title at that moment |
-| `exe_path` | TEXT | Full path to the executable |
-| `idle` | INTEGER | 1 if no input for longer than the idle threshold |
-
-Idle snapshots are excluded from all reports and the TUI by default.
-
-User preferences (language, theme) are stored separately in `~/.argus/settings.json`.
-
----
-
-## Categories
-
-Apps are automatically bucketed into categories:
-
-`Browser` · `IDE / Editor` · `Terminal` · `Communication` · `Design` · `Gaming` · `Productivity` · `Media` · `File Manager` · `System` · `Other`
-
-To add or change mappings, edit the `CATEGORIES` dict in `argus/config.py`.
 
 ---
 
@@ -227,4 +262,111 @@ build.py                  # PyInstaller build script → dist/argus[.exe]
 requirements.txt          # runtime dependencies
 requirements-dev.txt      # runtime + build tools (pyinstaller)
 dist/                     # compiled executables (git-ignored)
+```
+
+---
+
+## Architecture diagrams
+
+The following [Mermaid](https://mermaid.js.org/) blocks render on GitHub: **module structure**, **class relationships**, **tracking activity**, and a **sequence** for the report command.
+
+### Module structure (モジュール構成図)
+
+High-level dependency flow: CLI entry point and how `argus` modules call each other.
+
+```mermaid
+flowchart LR
+    subgraph entry[Entry]
+        main[main.py]
+    end
+    subgraph pkg[argus package]
+        config[config.py]
+        tracker[tracker.py]
+        storage[storage.py]
+        daemon[daemon.py]
+        report[report.py]
+        tui[tui.py]
+        autostart[autostart.py]
+        i18n[i18n.py]
+    end
+    main --> daemon
+    main --> report
+    main --> tui
+    main --> autostart
+    main --> tracker
+    daemon --> tracker
+    daemon --> storage
+    daemon --> config
+    tui --> tracker
+    tui --> storage
+    tui --> config
+    tui --> report
+    tui --> autostart
+    tui --> i18n
+    report --> storage
+    report --> config
+    autostart --> config
+    storage --> config
+```
+
+### Class diagram (クラス図)
+
+Main in-code types: `WindowInfo` is the snapshot shape from the tracker; TUI screens subclass Textual widgets.
+
+```mermaid
+classDiagram
+    direction TB
+    class App
+    class Static
+    class ModalScreen
+    App <|-- ArgusApp
+    Static <|-- StatusWidget
+    ModalScreen <|-- HelpScreen
+    ModalScreen <|-- WelcomeScreen
+    class WindowInfo {
+        <<TypedDict>>
+        app_name
+        window_title
+        exe_path
+    }
+    note for App "textual.app.App"
+    note for Static "textual.widgets.Static"
+    note for ModalScreen "textual.screen.ModalScreen"
+```
+
+### Activity diagram — tracking loop (アクティビティ図)
+
+Shared logic for `start` / daemon mode and the TUI background poller: poll interval, idle threshold, then write to SQLite.
+
+```mermaid
+flowchart TD
+    A([Start tracker]) --> B[init_db]
+    B --> C{Still running?}
+    C -->|yes| D[get_idle_seconds]
+    D --> E[get_active_window]
+    E --> F{Foreground window known?}
+    F -->|yes| G[record snapshot]
+    F -->|no| H[Skip write]
+    G --> I[Wait POLL_INTERVAL]
+    H --> I
+    I --> C
+    C -->|no / interrupt| J([Stop])
+```
+
+### Sequence diagram — `report` (シーケンス図)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant CLI as main.py
+    participant Report as report.py
+    participant Storage as storage.py
+    participant Rich as Rich console
+    User->>CLI: report optional date
+    CLI->>Report: daily_report(datetime)
+    Report->>Storage: query_range(start, end)
+    Storage-->>Report: snapshot rows
+    Report->>Report: aggregate and categorise
+    Report->>Rich: tables and panels
+    Rich-->>User: terminal output
 ```
