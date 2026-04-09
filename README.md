@@ -20,10 +20,10 @@ Live **TUI** on Windows (`argus tui`): status strip, today’s app and category 
 
 ## Design rationale
 
-From a systems engineer's perspective, Argus follows a layered design process:
+Argus follows a layered design process:
 
 ```
-Feature Design → Requirements Definition → Basic Design → Detailed Design
+Feature Design → Requirements Definition → Basic System Design → Detailed System Design
 ```
 
 ---
@@ -76,7 +76,11 @@ Derived directly from the feature table above.
 | CPU under 1 % | NF3 | On typical desktop hardware |
 | Modular / extensible | NF6 | Separate layers and modules |
 
-### Basic Design — three layers
+---
+
+### Basic System Design
+
+System uses a three-layer architecture:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -88,7 +92,11 @@ Derived directly from the feature table above.
 └─────────────────────────────────────────────┘
 ```
 
-### Detailed Design — module responsibilities
+---
+
+### Detailed System Design
+
+Module responsibilities:
 
 | Module | Responsibility |
 |---|---|
