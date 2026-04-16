@@ -1,5 +1,4 @@
-![Uploading 1.png…]()
-<img width="3200" height="1904" alt="2" src="https://github.com/user-attachments/assets/ca46859d-914b-446c-b3ac-b3915065eb2f" />
+<img width="3200" height="1904" alt="1" src="https://github.com/user-attachments/assets/d6724519-e9df-4b90-9d88-20298069735b" />
 # Argus
 
 **README languages:** English · [日本語](README.ja.md) · [中文](README.zh.md)
@@ -13,6 +12,8 @@ A Python tool that silently records which app and window you have active every 5
 ## Screenshots
 
 Live **TUI** on Windows (`argus tui`): status strip, today’s app and category breakdown with bars, and the weekly table. Left: **Gruvbox**; right: another built-in dark theme (teal palette). Press `T` to cycle themes.
+<img width="3200" height="1904" alt="1" src="https://github.com/user-attachments/assets/017a3611-0ecd-49d2-bc9e-56a6133ec6ed" />
+<img width="3200" height="1904" alt="2" src="https://github.com/user-attachments/assets/db1c7762-a1f4-4823-928c-ba378c52d601" />
 
 ![Argus TUI dashboard — Gruvbox theme](docs/screenshots/tui-dashboard-gruvbox.png)
 
