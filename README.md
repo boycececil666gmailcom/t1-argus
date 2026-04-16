@@ -1,4 +1,3 @@
-<img width="3200" height="1904" alt="1" src="https://github.com/user-attachments/assets/d6724519-e9df-4b90-9d88-20298069735b" />
 # Argus
 
 **README languages:** English · [日本語](README.ja.md) · [中文](README.zh.md)
