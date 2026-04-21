@@ -111,63 +111,9 @@ dist/                     # compiled executables (git-ignored)
 
 Edit `CATEGORIES` in `argus/config.py` to add or change mappings.
 
----
-
-### Detailed System Design
-
-**Module responsibilities:**
-
-| Module | Responsibility |
-|---|---|
-| `tracker.py` | Platform-specific active window + idle detection |
-| `storage.py` | SQLite init, `record()` write, `query_range()` read |
-| `daemon.py` | Foreground polling loop (`start` command) |
-| `tui.py` | Textual dashboard + embedded background poller |
-| `report.py` | Daily / weekly Rich reports + status panel |
-| `autostart.py` | OS-specific login-item registration |
-| `config.py` | Constants, category map, settings persistence |
-| `i18n.py` | UI string catalogue (6 languages) |
-
-**Data schema** — one row per 5-second snapshot in `~/.argus/argus.db` (override path with `ARGUS_DATA`):
-
-| Column | Type | Description |
-|---|---|---|
-| `ts` | REAL | Unix timestamp |
-| `app_name` | TEXT | Process name (e.g. `chrome`, `code`) |
-| `window_title` | TEXT | Window title at that moment |
-| `exe_path` | TEXT | Full path to the executable |
-| `idle` | INTEGER | 1 if no input for longer than the idle threshold |
-
-Idle snapshots are excluded from reports and the TUI by default. User preferences (language, theme) are stored separately in `~/.argus/settings.json`.
-
-**Tuning constants** in `argus/config.py`:
-
-```python
-POLL_INTERVAL  = 5    # seconds between snapshots
-IDLE_THRESHOLD  = 60   # seconds of no input before marking idle
-```
-
 **Architecture diagrams** (rendered via [Mermaid](https://mermaid.js.org/) on GitHub):
 
-*Sequence — `report` command:*
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant CLI as main.py
-    participant Report as report.py
-    participant Storage as storage.py
-    participant Rich as Rich console
-    User->>CLI: report optional date
-    CLI->>Report: daily_report(datetime)
-    Report->>Storage: query_range(start, end)
-    Storage-->>Report: snapshot rows
-    Report->>Report: aggregate and categorise
-    Report->>Rich: tables and panels
-    Rich-->>User: terminal output
-```
-
-*Module structure:*
+*Module structure — `main.py` delegates to each `argus/` module:*
 
 ```mermaid
 flowchart LR
@@ -204,29 +150,6 @@ flowchart LR
     storage --> config
 ```
 
-*Class diagram — `WindowInfo` TypedDict and TUI widget hierarchy:*
-
-```mermaid
-classDiagram
-    direction TB
-    class App
-    class Static
-    class ModalScreen
-    App <|-- ArgusApp
-    Static <|-- StatusWidget
-    ModalScreen <|-- HelpScreen
-    ModalScreen <|-- WelcomeScreen
-    class WindowInfo {
-        <<TypedDict>>
-        app_name
-        window_title
-        exe_path
-    }
-    note for App "textual.app.App"
-    note for Static "textual.widgets.Static"
-    note for ModalScreen "textual.screen.ModalScreen"
-```
-
 *Activity — tracking loop (shared by `start` and TUI background poller):*
 
 ```mermaid
@@ -242,6 +165,29 @@ flowchart TD
     H --> I
     I --> C
     C -->|no / interrupt| J([Stop])
+```
+
+---
+
+### Detailed System Design
+
+**Data schema** — one row per 5-second snapshot in `~/.argus/argus.db` (override path with `ARGUS_DATA`):
+
+| Column | Type | Description |
+|---|---|---|
+| `ts` | REAL | Unix timestamp |
+| `app_name` | TEXT | Process name (e.g. `chrome`, `code`) |
+| `window_title` | TEXT | Window title at that moment |
+| `exe_path` | TEXT | Full path to the executable |
+| `idle` | INTEGER | 1 if no input for longer than the idle threshold |
+
+Idle snapshots are excluded from reports and the TUI by default. User preferences (language, theme) are stored separately in `~/.argus/settings.json`.
+
+**Tuning constants** in `argus/config.py`:
+
+```python
+POLL_INTERVAL  = 5    # seconds between snapshots
+IDLE_THRESHOLD  = 60   # seconds of no input before marking idle
 ```
 
 ---

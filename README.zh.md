@@ -106,63 +106,9 @@ dist/                     # 编译产物（已加入 .gitignore）
 
 修改映射请编辑 `argus/config.py` 中的 `CATEGORIES`。
 
----
-
-### 系统详细设计
-
-**模块职责：**
-
-| 模块 | 职责 |
-|---|---|
-| `tracker.py` | 平台级窗口检测 + 空闲检测 |
-| `storage.py` | SQLite 初始化、`record()` 写入、`query_range()` 读取 |
-| `daemon.py` | 前台轮询循环（`start` 命令） |
-| `tui.py` | Textual 仪表盘 + 内嵌后台轮询器 |
-| `report.py` | 日报 / 周报 Rich 报告 + 状态面板 |
-| `autostart.py` | 各 OS 的开机自启动注册 |
-| `config.py` | 常量、分类映射、设置持久化 |
-| `i18n.py` | 界面字符串（6 种语言） |
-
-**数据 schema** — `~/.argus/argus.db` 中每 5 秒快照对应一行（目录可用 `ARGUS_DATA` 环境变量修改）：
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `ts` | REAL | Unix 时间戳 |
-| `app_name` | TEXT | 进程名（如 `chrome`、`code`）|
-| `window_title` | TEXT | 当时的窗口标题 |
-| `exe_path` | TEXT | 可执行文件完整路径 |
-| `idle` | INTEGER | 超过空闲阈值时为 1 |
-
-空闲快照在报告和 TUI 中默认排除。用户偏好（语言、主题）单独存储于 `~/.argus/settings.json`。
-
-**调优常量** `argus/config.py` 内：
-
-```python
-POLL_INTERVAL  = 5    # 快照间隔（秒）
-IDLE_THRESHOLD  = 60   # 标记为空闲的无操作时长（秒）
-```
-
 **架构图**（[Mermaid](https://mermaid.js.org/) — GitHub 原生渲染）：
 
-*序列图 — `report` 命令：*
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant CLI as main.py
-    participant Report as report.py
-    participant Storage as storage.py
-    participant Rich as Rich console
-    User->>CLI: report optional date
-    CLI->>Report: daily_report(datetime)
-    Report->>Storage: query_range(start, end)
-    Storage-->>Report: snapshot rows
-    Report->>Report: aggregate and categorise
-    Report->>Rich: tables and panels
-    Rich-->>User: terminal output
-```
-
-*模块结构：*
+*模块结构 — `main.py` 委托给各 `argus/` 模块：*
 
 ```mermaid
 flowchart LR
@@ -199,6 +145,41 @@ flowchart LR
     storage --> config
 ```
 
+*活动图 — 追踪循环（`start` 与 TUI 后台轮询器共享）：*
+
+```mermaid
+flowchart TD
+    A([Start tracker]) --> B[init_db]
+    B --> C{Still running?}
+    C -->|yes| D[get_idle_seconds]
+    D --> E[get_active_window]
+    E --> F{Foreground window known?}
+    F -->|yes| G[record snapshot]
+    F -->|no| H[Skip write]
+    G --> I[Wait POLL_INTERVAL]
+    H --> I
+    I --> C
+    C -->|no / interrupt| J([Stop])
+```
+
+*序列图 — `report` 命令：*
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant CLI as main.py
+    participant Report as report.py
+    participant Storage as storage.py
+    participant Rich as Rich console
+    User->>CLI: report optional date
+    CLI->>Report: daily_report(datetime)
+    Report->>Storage: query_range(start, end)
+    Storage-->>Report: snapshot rows
+    Report->>Report: aggregate and categorise
+    Report->>Rich: tables and panels
+    Rich-->>User: terminal output
+```
+
 *类图 — `WindowInfo` TypedDict 和 TUI 组件层级：*
 
 ```mermaid
@@ -222,21 +203,27 @@ classDiagram
     note for ModalScreen "textual.screen.ModalScreen"
 ```
 
-*活动图 — 追踪循环（`start` 与 TUI 后台轮询器共享）：*
+---
 
-```mermaid
-flowchart TD
-    A([Start tracker]) --> B[init_db]
-    B --> C{Still running?}
-    C -->|yes| D[get_idle_seconds]
-    D --> E[get_active_window]
-    E --> F{Foreground window known?}
-    F -->|yes| G[record snapshot]
-    F -->|no| H[Skip write]
-    G --> I[Wait POLL_INTERVAL]
-    H --> I
-    I --> C
-    C -->|no / interrupt| J([Stop])
+### 系统详细设计
+
+**数据 schema** — `~/.argus/argus.db` 中每 5 秒快照对应一行（目录可用 `ARGUS_DATA` 环境变量修改）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `ts` | REAL | Unix 时间戳 |
+| `app_name` | TEXT | 进程名（如 `chrome`、`code`）|
+| `window_title` | TEXT | 当时的窗口标题 |
+| `exe_path` | TEXT | 可执行文件完整路径 |
+| `idle` | INTEGER | 超过空闲阈值时为 1 |
+
+空闲快照在报告和 TUI 中默认排除。用户偏好（语言、主题）单独存储于 `~/.argus/settings.json`。
+
+**调优常量** `argus/config.py` 内：
+
+```python
+POLL_INTERVAL  = 5    # 快照间隔（秒）
+IDLE_THRESHOLD  = 60   # 标记为空闲的无操作时长（秒）
 ```
 
 ---

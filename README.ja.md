@@ -106,63 +106,9 @@ dist/                    # コンパイル済み実行ファイル（.gitignore 
 
 マッピングを変更するには `argus/config.py` の `CATEGORIES` を編集してください。
 
----
-
-### システム詳細設計
-
-**モジュールの責務：**
-
-| モジュール | 責務 |
-|---|---|
-| `tracker.py` | プラットフォーム別のウィンドウ検出＋アイドル検出 |
-| `storage.py` | SQLite 初期化、`record()` 書込、`query_range()` 読込 |
-| `daemon.py` | フォアグラウンドポーリングループ（`start` コマンド） |
-| `tui.py` | Textual ダッシュボード＋組み込みバックグラウンドポーラー |
-| `report.py` | 日次・週次 Rich レポート＋ステータスパネル |
-| `autostart.py` | OS 別のログイン項目登録 |
-| `config.py` | 定数、カテゴリマップ、設定の永続化 |
-| `i18n.py` | UI 文字列カタログ（6 言語） |
-
-**データスキーマ** — `~/.argus/argus.db` に 5 秒ごとのスナップショットが 1 行（パスは `ARGUS_DATA` 環境変数で変更可）：
-
-| カラム | 型 | 説明 |
-|---|---|---|
-| `ts` | REAL | Unix タイムスタンプ |
-| `app_name` | TEXT | プロセス名（例：`chrome`、`code`）|
-| `window_title` | TEXT | その時点のウィンドウタイトル |
-| `exe_path` | TEXT | 実行ファイルのフルパス |
-| `idle` | INTEGER | アイドルしきい値を超えた場合 1 |
-
-アイドルのスナップショットはレポートと TUI でデフォルト除外されます。ユーザー設定（言語、テーマ）は `~/.argus/settings.json` に別途保存されます。
-
-**設定定数** `argus/config.py` 内：
-
-```python
-POLL_INTERVAL  = 5    # スナップショットの間隔（秒）
-IDLE_THRESHOLD  = 60   # アイドルとみなす無操作時間（秒）
-```
-
 **アーキテクチャ図**（[Mermaid](https://mermaid.js.org/) — GitHub で自動描画）：
 
-*シーケンス — `report` コマンド：*
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant CLI as main.py
-    participant Report as report.py
-    participant Storage as storage.py
-    participant Rich as Rich console
-    User->>CLI: report optional date
-    CLI->>Report: daily_report(datetime)
-    Report->>Storage: query_range(start, end)
-    Storage-->>Report: snapshot rows
-    Report->>Report: aggregate and categorise
-    Report->>Rich: tables and panels
-    Rich-->>User: terminal output
-```
-
-*モジュール構造：*
+*モジュール構造 — `main.py` が各 `argus/` モジュールに委譲：*
 
 ```mermaid
 flowchart LR
@@ -199,6 +145,41 @@ flowchart LR
     storage --> config
 ```
 
+*アクティビティ — トラッキングループ（`start` と TUI バックグラウンドポーラーで共有）：*
+
+```mermaid
+flowchart TD
+    A([Start tracker]) --> B[init_db]
+    B --> C{Still running?}
+    C -->|yes| D[get_idle_seconds]
+    D --> E[get_active_window]
+    E --> F{Foreground window known?}
+    F -->|yes| G[record snapshot]
+    F -->|no| H[Skip write]
+    G --> I[Wait POLL_INTERVAL]
+    H --> I
+    I --> C
+    C -->|no / interrupt| J([Stop])
+```
+
+*シーケンス — `report` コマンド：*
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant CLI as main.py
+    participant Report as report.py
+    participant Storage as storage.py
+    participant Rich as Rich console
+    User->>CLI: report optional date
+    CLI->>Report: daily_report(datetime)
+    Report->>Storage: query_range(start, end)
+    Storage-->>Report: snapshot rows
+    Report->>Report: aggregate and categorise
+    Report->>Rich: tables and panels
+    Rich-->>User: terminal output
+```
+
 *クラス図 — `WindowInfo` TypedDict と TUI ウィジェット階層：*
 
 ```mermaid
@@ -222,21 +203,27 @@ classDiagram
     note for ModalScreen "textual.screen.ModalScreen"
 ```
 
-*アクティビティ — トラッキングループ（`start` と TUI バックグラウンドポーラーで共有）：*
+---
 
-```mermaid
-flowchart TD
-    A([Start tracker]) --> B[init_db]
-    B --> C{Still running?}
-    C -->|yes| D[get_idle_seconds]
-    D --> E[get_active_window]
-    E --> F{Foreground window known?}
-    F -->|yes| G[record snapshot]
-    F -->|no| H[Skip write]
-    G --> I[Wait POLL_INTERVAL]
-    H --> I
-    I --> C
-    C -->|no / interrupt| J([Stop])
+### システム詳細設計
+
+**データスキーマ** — `~/.argus/argus.db` に 5 秒ごとのスナップショットが 1 行（パスは `ARGUS_DATA` 環境変数で変更可）：
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| `ts` | REAL | Unix タイムスタンプ |
+| `app_name` | TEXT | プロセス名（例：`chrome`、`code`）|
+| `window_title` | TEXT | その時点のウィンドウタイトル |
+| `exe_path` | TEXT | 実行ファイルのフルパス |
+| `idle` | INTEGER | アイドルしきい値を超えた場合 1 |
+
+アイドルのスナップショットはレポートと TUI でデフォルト除外されます。ユーザー設定（言語、テーマ）は `~/.argus/settings.json` に別途保存されます。
+
+**設定定数** `argus/config.py` 内：
+
+```python
+POLL_INTERVAL  = 5    # スナップショットの間隔（秒）
+IDLE_THRESHOLD  = 60   # アイドルとみなす無操作時間（秒）
 ```
 
 ---
