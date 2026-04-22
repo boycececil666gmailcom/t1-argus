@@ -1,4 +1,4 @@
-# Argus
+﻿# Argus
 
 **README languages:** English · [日本語](README.ja.md) · [中文](README.zh.md)
 
@@ -53,7 +53,7 @@ Requirements Definition → Basic System Design → Detailed System Design
 | R12 | Low storage overhead | One row per 5-second snapshot |
 | R13 | Modular / extensible | Clear layer separation |
 
-> **Feature table** — each requirement maps to a feature (F1–F7) or quality attribute (NF1–NF6). See the appendix at the bottom of this README.
+> **Feature table** — each requirement maps to a feature (F1–F7) or quality attribute (NF1–NF6).
 
 ---
 
@@ -307,32 +307,3 @@ argus status
 argus install    # Enable auto-start
 argus uninstall  # Disable auto-start
 ```
-
----
-
-## Appendix — Feature Reference
-
-The **Requirements Definition** above maps each requirement to a **feature** (F1–F7) or **quality attribute** (NF1–NF6).
-
-**Functional features:**
-
-| # | Feature | Rationale |
-|---|---|---|
-| F1 | Track foreground window | Core value — persistent, silent, background operation |
-| F2 | Auto-categorise apps | Converts raw process names into meaningful categories |
-| F3 | Snapshot storage in SQLite | Simple, portable, zero-config, no server |
-| F4 | Tracker runs inside TUI process | Single `argus tui` starts everything, no separate daemon |
-| F5 | Auto-start on login | Zero-friction — starts recording without user action |
-| F6 | Multi-language TUI (6 languages) | Accessibility for non-English speakers |
-| F7 | 12 colour themes | Personalisation without code changes |
-
-**Non-functional quality attributes:**
-
-| # | Quality | Driver |
-|---|---|---|
-| NF1 | Privacy — all data stays local | User trust |
-| NF2 | Cross-platform availability | Platform diversity |
-| NF3 | Lightweight performance | Always-on constraint |
-| NF4 | Idle detection | Data quality |
-| NF5 | Low storage overhead | Long-term viability |
-| NF6 | Modular / extensible | Future-proof design |
