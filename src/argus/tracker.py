@@ -2,9 +2,8 @@
 
 Platform support:
   Windows — pywin32 + ctypes (Win32 API, no extra tools needed)
-  macOS   — osascript + ioreg (both built-in, no extra tools needed)
   Linux   — xdotool + xprintidle (install via: sudo apt install xdotool xprintidle)
-             Wayland note: xdotool requires XWayland; native Wayland support is limited.
+            Wayland note: xdotool requires XWayland; native Wayland support is limited.
 """
 
 # region Imports
@@ -61,64 +60,6 @@ def _idle_seconds_win32() -> float:
     ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
     elapsed_ms = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
     return max(0.0, elapsed_ms / 1000.0)
-
-
-# endregion
-
-# region Private Methods — macOS
-#
-# Uses only built-in macOS command-line tools:
-#   osascript  — AppleScript interpreter for querying the frontmost app/window
-#   ioreg      — IOKit registry CLI for reading the HID idle time counter
-
-
-def _active_window_darwin() -> "WindowInfo | None":
-    import subprocess
-
-    try:
-        app_name = subprocess.check_output(
-            ["osascript", "-e",
-             'tell application "System Events" to get name of first application process '
-             'whose frontmost is true'],
-            text=True, timeout=2,
-        ).strip()
-    except Exception:
-        return None
-
-    try:
-        title = subprocess.check_output(
-            ["osascript", "-e", f'tell application "{app_name}" to get name of front window'],
-            text=True, timeout=1, stderr=subprocess.DEVNULL,
-        ).strip()
-    except Exception:
-        title = ""
-
-    exe_path = ""
-    try:
-        import psutil
-        low = app_name.lower()
-        for proc in psutil.process_iter(["name", "exe"]):
-            if proc.info["name"] and low in proc.info["name"].lower():
-                exe_path = proc.info["exe"] or ""
-                break
-    except Exception:
-        pass
-
-    return WindowInfo(app_name=app_name, window_title=title, exe_path=exe_path)
-
-
-def _idle_seconds_darwin() -> float:
-    import subprocess
-
-    try:
-        out = subprocess.check_output(["ioreg", "-c", "IOHIDSystem"], text=True, timeout=2)
-        for line in out.splitlines():
-            if "HIDIdleTime" in line:
-                ns = int(line.split("=")[-1].strip())
-                return ns / 1_000_000_000.0
-    except Exception:
-        pass
-    return 0.0
 
 
 # endregion
@@ -193,8 +134,6 @@ def get_active_window() -> WindowInfo | None:
     """
     if sys.platform == "win32":
         return _active_window_win32()
-    if sys.platform == "darwin":
-        return _active_window_darwin()
     return _active_window_linux()
 
 
@@ -206,8 +145,6 @@ def get_idle_seconds() -> float:
     """
     if sys.platform == "win32":
         return _idle_seconds_win32()
-    if sys.platform == "darwin":
-        return _idle_seconds_darwin()
     return _idle_seconds_linux()
 
 

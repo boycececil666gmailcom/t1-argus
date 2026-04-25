@@ -1,4 +1,4 @@
-﻿# Argus
+# Argus
 
 **README languages:** English · [日本語](README.ja.md) · [中文](README.zh.md)
 
@@ -6,14 +6,29 @@
 
 > *A six-month solo project born from a simple question: where does my time actually go?*
 
-A Python tool that silently records which app and window you have active every 5 seconds. Run it in the background, then pull up a live dashboard or a rich terminal report to see exactly where your time goes.
+Argus quietly records which app you're using every 5 seconds — no prompts, no effort. Open the dashboard later to see exactly where your hours went.
+
+**No cloud. No account. No tracking — of you. Your data stays on your machine.**
+
+## What is TUI?
+
+TUI stands for **Text-based User Interface**. Instead of buttons and windows, it draws an interactive interface using plain text and characters, right inside your terminal. Think of it like a dashboard that lives in your command-line — no GUI window needed.
+
+For a system like Argus, this matters: it means one command (`argus tui`) starts both the tracker and the dashboard at the same time, no background service setup required. It's lightweight and keyboard-driven.
+
+## Features
+
+- **Every 5 seconds** — records the active app, window title, and timestamps silently in the background
+- **Auto-categorises** — groups time into Browser, IDE, Communication, Gaming, Media, and more
+- **Local-only** — all data stored in a simple SQLite file on your computer; nothing sent anywhere
+- **Cross-platform** — works on Windows and Linux
 
 ## Screenshots
-
-Live **TUI** on Windows (`argus tui`): status strip, today's app and category breakdown with bars, and the weekly table. Left: **Gruvbox**; right: another built-in dark theme (teal palette). Press `T` to cycle themes.
+Functional screenshots
 <img width="3200" height="1904" alt="1" src="https://github.com/user-attachments/assets/017a3611-0ecd-49d2-bc9e-56a6133ec6ed" />
 <img width="3200" height="1904" alt="2" src="https://github.com/user-attachments/assets/db1c7762-a1f4-4823-928c-ba378c52d601" />
 
+Theme changes
 ![Argus TUI dashboard — Gruvbox theme](docs/screenshots/tui-dashboard-gruvbox.png)
 
 ![Argus TUI dashboard — teal dark theme](docs/screenshots/tui-dashboard-teal.png)
@@ -30,65 +45,67 @@ Requirements Definition → Basic System Design → Detailed System Design
 
 ### Requirements Definition
 
-**Functional requirements** — what the system does.
+**What it does:**
 
-| # | Requirement | Target |
+| # | Feature | Details |
 |---|---|---|
-| R1 | Track foreground window | Every 5 seconds, silently |
-| R2 | Auto-categorise apps | 11 built-in categories |
-| R3 | Store snapshots in SQLite | Simple, portable, zero-config, no server |
-| R4 | Run tracker inside TUI process | Single `argus tui` starts everything, no separate daemon |
-| R5 | Auto-start on login | OS-specific registration |
-| R6 | Multi-language TUI | 6 languages, saved to settings |
-| R7 | 12 colour themes | Press `T` to cycle |
+| R1 | Tracks your active window | Every 5 seconds, silently |
+| R2 | Auto-categorises apps | Browser, IDE, Terminal, Chat, etc. — 11 categories |
+| R3 | Stores data locally | SQLite file, no server, no account |
+| R4 | TUI runs the tracker too | `argus tui` starts both dashboard and tracker — no daemon needed |
+| R5 | Auto-starts on login | OS-specific, one command to enable |
+| R6 | 6 UI languages | Press `L` in the TUI to switch |
+| R7 | 12 colour themes | Press `T` in the TUI to cycle |
 
-**Non-functional requirements** — how well the system behaves.
+**How well it behaves:**
 
-| # | Requirement | Target |
+| # | Quality | Details |
 |---|---|---|
-| R8 | Privacy | All data stays local — no network, no telemetry |
-| R9 | Cross-platform | Windows, macOS, Linux |
-| R10 | Lightweight | < 1 % CPU on typical desktop hardware |
-| R11 | Idle detection | Skip snapshots when user is away |
-| R12 | Low storage overhead | One row per 5-second snapshot |
-| R13 | Modular / extensible | Clear layer separation |
-
-> **Feature table** — each requirement maps to a feature (F1–F7) or quality attribute (NF1–NF6).
+| R8 | Privacy | All data stays on your machine — zero network calls |
+| R9 | Cross-platform | Windows, Linux |
+| R10 | Lightweight | Uses less than 1% CPU on normal desktop use |
+| R11 | Idle detection | Pauses recording when you're away |
+| R12 | Small storage | One row per 5-second snapshot |
+| R13 | Modular | Clean layer separation for easy maintenance |
 
 ---
 
 ### Basic System Design
 
-**Three-layer architecture:**
+**Three layers:**
 
 ```
 ┌─────────────────────────────────────────────┐
-│  UI layer: TUI (Textual) + Reports (Rich)  │
+│  UI layer: TUI (Textual) + Reports (Rich)   │
 ├─────────────────────────────────────────────┤
 │  Service layer: Tracker, Storage, Report    │
 ├─────────────────────────────────────────────┤
-│  Platform layer: Win32 / macOS / Linux     │
+│  Platform layer: Win32 / Linux      │
 └─────────────────────────────────────────────┘
 ```
+
+- **UI layer** — TUI is the live dashboard (powered by Textual). Reports are static text printouts (powered by Rich).
+- **Service layer** — Tracker checks what window is active. Storage saves snapshots to SQLite. Report generates summaries.
+- **Platform layer** — Platform-specific code for each OS to detect active windows and idle state.
 
 **Project structure:**
 
 ```
 src/
-├── main.py               # Typer CLI — thin entry point, delegates to argus/
+├── main.py               # CLI entry point — delegates to argus/
 └── argus/
-    ├── __init__.py       # package version
-    ├── config.py         # constants, category map, settings persistence
-    ├── i18n.py           # UI string catalogue (6 languages)
-    ├── tracker.py        # active window + idle detection (Win / macOS / Linux)
+    ├── __init__.py       # version
+    ├── config.py         # constants, category rules, settings
+    ├── i18n.py           # UI strings (6 languages)
+    ├── tracker.py        # active window + idle detection (per OS)
     ├── storage.py        # SQLite read/write
-    ├── daemon.py         # foreground polling loop (used by `start` command)
-    ├── report.py         # Rich daily/weekly/status reports
-    ├── tui.py            # Textual live dashboard
-    └── autostart.py      # login auto-start helpers (Win / macOS / Linux)
+    ├── daemon.py         # background polling loop
+    ├── report.py         # daily/weekly/status reports
+    ├── tui.py            # live dashboard
+    └── autostart.py      # login auto-start (per OS)
 build.py                  # PyInstaller build script → dist/argus[.exe]
 requirements.txt          # runtime dependencies
-requirements-dev.txt      # runtime + build tools (pyinstaller)
+requirements-dev.txt      # runtime + build tools
 dist/                     # compiled executables (git-ignored)
 ```
 
@@ -96,22 +113,18 @@ dist/                     # compiled executables (git-ignored)
 
 | Concern | Tool |
 |---|---|
-| Active window detection | `pywin32` (Windows) · `osascript` (macOS) · `xdotool` (Linux) |
-| Idle detection | `GetLastInputInfo` via ctypes (Windows) · `ioreg` (macOS) · `xprintidle` (Linux) |
-| Process info | `psutil` |
+| Active window detection | `pywin32` (Windows) · `xdotool` (Linux) |
+| Idle detection | Windows API / `xprintidle` |
 | Storage | SQLite via stdlib `sqlite3` |
 | CLI | `Typer` |
-| Terminal reports | `Rich` |
-| Interactive dashboard | `Textual` |
-| Auto-start | Registry key (Windows) · LaunchAgent plist (macOS) · XDG autostart (Linux) |
+| Reports | `Rich` |
+| Live dashboard | `Textual` |
 
-**App categories:**
-
-`Browser` · `IDE / Editor` · `Terminal` · `Communication` · `Design` · `Gaming` · `Productivity` · `Media` · `File Manager` · `System` · `Other`
+**App categories:** `Browser` · `IDE / Editor` · `Terminal` · `Communication` · `Design` · `Gaming` · `Productivity` · `Media` · `File Manager` · `System` · `Other`
 
 Edit `CATEGORIES` in `argus/config.py` to add or change mappings.
 
-**Architecture diagrams** (rendered via [Mermaid](https://mermaid.js.org/) on GitHub):
+**Architecture diagrams** (rendered on GitHub):
 
 *Module structure — `main.py` delegates to each `argus/` module:*
 
@@ -150,7 +163,7 @@ flowchart LR
     storage --> config
 ```
 
-*Activity — tracking loop (shared by `start` and TUI background poller):*
+*Activity — tracking loop:*
 
 ```mermaid
 flowchart TD
@@ -171,15 +184,15 @@ flowchart TD
 
 ### Detailed System Design
 
-**Data schema** — one row per 5-second snapshot in `~/.argus/argus.db` (override path with `ARGUS_DATA`):
+**Data stored** — one row per 5-second snapshot in `~/.argus/argus.db`:
 
-| Column | Type | Description |
+| Column | Type | Meaning |
 |---|---|---|
 | `ts` | REAL | Unix timestamp |
 | `app_name` | TEXT | Process name (e.g. `chrome`, `code`) |
 | `window_title` | TEXT | Window title at that moment |
 | `exe_path` | TEXT | Full path to the executable |
-| `idle` | INTEGER | 1 if no input for longer than the idle threshold |
+| `idle` | INTEGER | 1 if no keyboard/mouse input for longer than the idle threshold |
 
 Idle snapshots are excluded from reports and the TUI by default. User preferences (language, theme) are stored separately in `~/.argus/settings.json`.
 
@@ -205,58 +218,54 @@ IDLE_THRESHOLD  = 60   # seconds of no input before marking idle
 
 `argus tui` opens a live full-terminal dashboard powered by [Textual](https://textual.textualize.io/). It also runs the tracker in the background — no separate `start` command needed.
 
-**What it shows:**
+**What the TUI shows:**
 
-- **Status panel** — active app, category, window title, idle time, and total snapshot count
+- **Status panel** — active app, category, window title, idle time, snapshot count
 - **Today** — top 10 apps and category breakdown with progress bars
 - **This Week** — day-by-day summary table plus weekly top apps and categories
 
-Everything auto-refreshes every 5 seconds.
+The TUI auto-refreshes every 5 seconds.
 
-The TUI supports 6 languages, cycled with `L`:
+6 languages: `en` · `ja` · `zh` · `fr` · `de` · `es`
 
-`en` (English) · `ja` (日本語) · `zh` (中文) · `fr` (Français) · `de` (Deutsch) · `es` (Español)
+12 themes: `textual-dark` · `textual-light` · `nord` · `gruvbox` · `catppuccin-mocha` · `catppuccin-latte` · `dracula` · `tokyo-night` · `monokai` · `solarized-dark` · `solarized-light` · `flexoki`
 
-Your language choice is saved to `~/.argus/settings.json` and restored on next launch.
-
-Press `T` in the TUI to cycle through all 12 built-in Textual themes:
-
-`textual-dark` · `textual-light` · `nord` · `gruvbox` · `catppuccin-mocha` · `catppuccin-latte` · `dracula` · `tokyo-night` · `monokai` · `solarized-dark` · `solarized-light` · `flexoki`
-
-Your theme choice is saved and restored automatically.
+Your language and theme choices are saved and restored automatically.
 
 ---
 
 ## Origin Story
 
-Six months ago, I hit a wall.
+Six months ago, I had just finished a brutal stretch — full-time job, freelance work, and study all at once. One night I asked myself a simple question: **where did my time actually go?**
 
-I had just wrapped up a demanding period — full-time work, freelance projects, study — and one night I asked myself a deceptively simple question: **where did my time actually go?**
-
-I tried recall. I tried notes. Nothing stuck. The problem wasn't effort — it was invisibility. You can't improve what you can't measure, and time spent at a computer is notoriously hard to introspect after the fact.
+I tried remembering. I tried taking notes. Neither stuck. The problem wasn't effort — it was invisibility. You can't fix what you can't see, and time on a computer is nearly impossible to recall accurately.
 
 So I built Argus.
 
-Not as a chore tracker. Not as a Pomodoro timer. As a **passive, always-on mirror** that simply records what you do — every 5 seconds, no prompts, no friction — and then lets you look back and see the truth.
+Not a to-do list. Not a Pomodoro timer. A **passive mirror** that records what you do every 5 seconds, then lets you look back and see the truth.
 
-### Why build it myself?
+**Why not use an existing tool?** RescueTime, ActivityWatch, Toggl — I tried them. Each had something I didn't want: cloud dependency, subscription fees, poor Linux support, or no terminal interface. I wanted something that ran locally, forever, without friction. Argus is that tool.
 
-I evaluated existing tools: RescueTime, ActivityWatch, Toggl. They're solid. But each had something I didn't want:
+**What I learned building it:** the constraint was the feature. Building in stolen hours — early mornings, weekends — meant I couldn't over-engineer. Simplicity became a philosophy, not a compromise.
 
-- Cloud dependency — I wasn't comfortable sending all my window activity to a server
-- Subscription pricing — for something I wanted to run forever
-- Linux gaps — most didn't have first-class support
-- No TUI — I live in the terminal
+---
 
-Argus is the tool I wanted: **local-only, cross-platform, zero-cost, and terminal-native.** It runs quietly in the background on Windows, macOS, or Linux. Data never leaves your machine. The TUI dashboard runs in Textual and refreshes live. Weekly reports surface patterns you wouldn't notice otherwise.
+## Downloads
 
-### What I learned
+### Linux
 
-Half a year of solo development across a demanding schedule taught me something unexpected: **the constraint was the feature.** Building Argus in stolen hours — early mornings, weekends — meant I couldn't over-engineer. Every decision had to be justified. Simplicity became a philosophy, not a compromise.
+Download the latest release from the [GitHub Releases page](https://github.com/boycececil666gmailcom/t1-pub-argus/releases/latest).
 
-The result is a tool that I use every single day. And now it's open source.
+```bash
+# Example: download and run (replace X.Y.Z with the latest version)
+curl -L https://github.com/boycececil666gmailcom/t1-pub-argus/releases/download/vX.Y.Z/argus -o argus
+chmod +x argus
+./argus tui
+```
 
-> If you've ever wondered where your time goes — [give it a try](https://github.com/boycececil666/t1-pub-argus).
+> **System dependencies required** (install before running Argus for the first time):
+> - Ubuntu / Debian: `sudo apt install xdotool xprintidle`
+> - Fedora: `sudo dnf install xdotool xprintidle`
 
 ---
 
@@ -267,13 +276,6 @@ The result is a tool that I use every single day. And now it's open source.
 ```bash
 # Download dist/argus.exe and run
 argus.exe tui
-```
-
-### macOS
-
-```bash
-# Download dist/argus and run
-./argus tui
 ```
 
 ### Linux
@@ -290,7 +292,6 @@ sudo dnf install xdotool xprintidle   # Fedora
 ### What to do next
 
 ```bash
-# View today's activity report
 argus tui        # Interactive dashboard (recommended)
 argus report     # Text report in terminal
 

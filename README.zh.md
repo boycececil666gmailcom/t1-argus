@@ -1,10 +1,27 @@
-﻿# Argus
+# Argus
 
 **README 语言：** [English](README.md) · [日本語](README.ja.md) · 中文
 
 > *以希腊神话中百眼巨人 Argus Panoptes 命名——他从不安睡，时刻注视着一切。*
 
 > *一个简单的问题，开启了六个月的独立开发之旅：我的时间究竟去了哪里？*
+
+Argus 每 5 秒默默记录你正在使用的应用 —— 无需提示，无需操作。之后打开仪表盘，就能清楚地看到时间都花在了哪里。
+
+**无云端。无账号。不追踪你。只追踪数据。数据永远留在你自己的电脑上。**
+
+## 什么是 TUI？
+
+TUI 是 **Text-based User Interface（文本用户界面）** 的缩写。它用纯文本和字符在终端内绘制交互界面，不需要按钮或窗口。把它想象成一个住在命令行里的仪表盘 —— 无需独立的 GUI 窗口。
+
+对于 Argus 这样的系统来说，这意味着：一条命令（`argus tui`）同时启动追踪器和仪表盘，无需任何后台服务配置。轻量、快速、全键盘操作。
+
+## 功能
+
+- **每 5 秒** — 记录当前应用、窗口标题和时间戳，后台静默运行
+- **自动分类** — 将时间归入浏览器、IDE、通讯、游戏、媒体等分类
+- **仅本地存储** — 数据保存在电脑上的 SQLite 文件中，不上传到任何地方
+- **跨平台** — 支持 Windows、Linux
 
 ## Screenshots
 
@@ -22,30 +39,28 @@ Screenshots are available in the [English README](README.md#screenshots).
 
 ### 需求定义
 
-**功能性需求** — 系统做什么。
+**系统做什么：**
 
-| # | 需求 | 目标 |
+| # | 功能 | 详情 |
 |---|---|---|
 | R1 | 追踪前台窗口 | 每 5 秒静默记录 |
-| R2 | 自动分类应用 | 11 个内置分类 |
-| R3 | 快照存储至 SQLite | 简单、便携、零配置、无需服务器 |
-| R4 | 在 TUI 进程内运行追踪器 | 单个 `argus tui` 启动全部，无需独立守护进程 |
-| R5 | 登录时自动启动 | 各 OS 注册方式 |
-| R6 | 多语言 TUI | 6 种语言，保存至设置 |
-| R7 | 12 套配色主题 | 按 `T` 切换 |
+| R2 | 自动分类应用 | 浏览器、IDE、终端、聊天等 — 11 个分类 |
+| R3 | 本地存储数据 | SQLite 文件，无需服务器，无需账号 |
+| R4 | TUI 同时运行追踪器 | `argus tui` 同时启动仪表盘和追踪器，无需独立守护进程 |
+| R5 | 登录时自动启动 | 各系统对应，一条命令启用 |
+| R6 | 6 种界面语言 | 在 TUI 中按 `L` 切换 |
+| R7 | 12 套配色主题 | 在 TUI 中按 `T` 切换 |
 
-**非功能性需求** — 系统做得多好。
+**系统做得怎么样：**
 
-| # | 需求 | 目标 |
+| # | 品质 | 详情 |
 |---|---|---|
-| R8 | 隐私 | 全数据本地存储 — 无网络、无遥测 |
-| R9 | 跨平台 | Windows、macOS、Linux |
-| R10 | 轻量 | 典型桌面环境下 CPU < 1% |
-| R11 | 空闲检测 | 用户离开时跳过快照 |
-| R12 | 低存储开销 | 每 5 秒一行 |
-| R13 | 模块化 / 可扩展 | 清晰的层次分离 |
-
-> **功能表** — 各需求映射到功能（F1–F7）或质量属性（NF1–NF6）。
+| R8 | 隐私保护 | 所有数据留在你电脑上 — 零网络请求 |
+| R9 | 跨平台 | Windows、Linux |
+| R10 | 轻量 | 普通桌面使用下 CPU 占用低于 1% |
+| R11 | 空闲检测 | 你离开时自动暂停记录 |
+| R12 | 低存储开销 | 每 5 秒仅一行数据 |
+| R13 | 模块化 | 层次清晰，易于维护 |
 
 ---
 
@@ -59,51 +74,51 @@ Screenshots are available in the [English README](README.md#screenshots).
 ├──────────────────────────────────────────────┤
 │  服务层: 追踪器、存储、报告                    │
 ├──────────────────────────────────────────────┤
-│  平台层: Win32 / macOS / Linux               │
+│  平台层: Win32 / Linux               │
 └──────────────────────────────────────────────┘
 ```
+
+- **UI 层** — TUI 是实时仪表盘（由 Textual 驱动）。报告是静态文本输出（由 Rich 驱动）。
+- **服务层** — 追踪器负责检测哪个窗口处于活跃状态。存储负责将快照保存到 SQLite。报告负责生成汇总。
+- **平台层** — 各操作系统特定的代码，用于检测活跃窗口和空闲状态。
 
 **项目结构：**
 
 ```
 src/
-├── main.py               # Typer CLI 入口，委托给 argus/
+├── main.py               # CLI 入口 — 委托给 argus/
 └── argus/
-    ├── __init__.py       # 包版本
-    ├── config.py         # 常量、分类映射、设置持久化
+    ├── __init__.py       # 版本号
+    ├── config.py         # 常量、分类规则、设置
     ├── i18n.py           # 界面字符串（6 种语言）
-    ├── tracker.py        # 活跃窗口 + 空闲检测（Win / macOS / Linux）
+    ├── tracker.py        # 活跃窗口 + 空闲检测（各系统）
     ├── storage.py        # SQLite 读写
-    ├── daemon.py         # 前台轮询循环（start 命令）
-    ├── report.py         # Rich 日报 / 周报 / 状态报告
-    ├── tui.py            # Textual 实时仪表盘
-    └── autostart.py      # 开机自启（Win / macOS / Linux）
+    ├── daemon.py         # 后台轮询循环
+    ├── report.py         # 日报 / 周报 / 状态报告
+    ├── tui.py            # 实时仪表盘
+    └── autostart.py      # 开机自启（各系统）
 build.py                  # PyInstaller 构建脚本 → dist/argus[.exe]
 requirements.txt          # 运行时依赖
-requirements-dev.txt      # 运行时 + 构建工具（pyinstaller）
-dist/                     # 编译产物（已加入 .gitignore）
+requirements-dev.txt     # 运行时 + 构建工具
+dist/                    # 编译产物（已加入 .gitignore）
 ```
 
 **技术栈：**
 
 | Concern | 工具 |
 |---|---|
-| 活跃窗口检测 | `pywin32`（Windows）· `osascript`（macOS）· `xdotool`（Linux）|
-| 空闲检测 | `GetLastInputInfo` via ctypes（Windows）· `ioreg`（macOS）· `xprintidle`（Linux）|
-| 进程信息 | `psutil` |
+| 活跃窗口检测 | `pywin32`（Windows）· `xdotool`（Linux）|
+| 空闲检测 | Windows API / `xprintidle` |
 | 存储 | SQLite（标准库 `sqlite3`）|
 | CLI | `Typer` |
-| 终端报告 | `Rich` |
-| 交互式仪表盘 | `Textual` |
-| 开机自启 | 注册表键（Windows）· LaunchAgent plist（macOS）· XDG autostart（Linux）|
+| 报告 | `Rich` |
+| 实时仪表盘 | `Textual` |
 
-**应用分类：**
+**应用分类：** `浏览器` · `IDE / 编辑器` · `终端` · `通讯` · `设计` · `游戏` · `生产力` · `媒体` · `文件管理器` · `系统` · `其他`
 
-`浏览器` · `IDE / 编辑器` · `终端` · `通讯` · `设计` · `游戏` · `生产力` · `媒体` · `文件管理器` · `系统` · `其他`
+修改分类映射请编辑 `argus/config.py` 中的 `CATEGORIES`。
 
-修改映射请编辑 `argus/config.py` 中的 `CATEGORIES`。
-
-**架构图**（[Mermaid](https://mermaid.js.org/) — GitHub 原生渲染）：
+**架构图**（GitHub 原生渲染）：
 
 *模块结构 — `main.py` 委托给各 `argus/` 模块：*
 
@@ -142,7 +157,7 @@ flowchart LR
     storage --> config
 ```
 
-*活动图 — 追踪循环（`start` 与 TUI 后台轮询器共享）：*
+*活动图 — 追踪循环：*
 
 ```mermaid
 flowchart TD
@@ -204,9 +219,9 @@ classDiagram
 
 ### 系统详细设计
 
-**数据 schema** — `~/.argus/argus.db` 中每 5 秒快照对应一行（目录可用 `ARGUS_DATA` 环境变量修改）：
+**存储的数据** — `~/.argus/argus.db` 中每 5 秒快照对应一行：
 
-| 字段 | 类型 | 说明 |
+| 字段 | 类型 | 含义 |
 |---|---|---|
 | `ts` | REAL | Unix 时间戳 |
 | `app_name` | TEXT | 进程名（如 `chrome`、`code`）|
@@ -238,25 +253,19 @@ IDLE_THRESHOLD  = 60   # 标记为空闲的无操作时长（秒）
 
 运行 `argus tui` 打开由 [Textual](https://textual.textualize.io/) 驱动的全终端实时仪表盘，同时在后台运行追踪器，无需单独执行 `start`。
 
-**显示内容**
+**TUI 显示内容：**
 
 - **状态面板** — 当前应用、分类、窗口标题、空闲时间、快照总数
 - **今日** — 前 10 个应用及分类占比（含进度条）
 - **本周** — 逐日汇总、每周分类分布、每周热门应用
 
-每 5 秒自动刷新。
+TUI 每 5 秒自动刷新。
 
-TUI 支持 6 种语言，按 `L` 循环切换：
+6 种语言： `en` · `ja` · `zh` · `fr` · `de` · `es`
 
-`en` (English) · `ja` (日本語) · `zh` (中文) · `fr` (Français) · `de` (Deutsch) · `es` (Español)
+12 套主题： `textual-dark` · `textual-light` · `nord` · `gruvbox` · `catppuccin-mocha` · `catppuccin-latte` · `dracula` · `tokyo-night` · `monokai` · `solarized-dark` · `solarized-light` · `flexoki`
 
-语言选择保存至 `~/.argus/settings.json`，下次启动时自动恢复。
-
-在 TUI 中按 `T` 循环切换 12 个内置 Textual 主题：
-
-`textual-dark` · `textual-light` · `nord` · `gruvbox` · `catppuccin-mocha` · `catppuccin-latte` · `dracula` · `tokyo-night` · `monokai` · `solarized-dark` · `solarized-light` · `flexoki`
-
-主题选择同样自动保存并恢复。
+语言和主题选择自动保存并恢复。
 
 ---
 
@@ -270,26 +279,30 @@ TUI 支持 6 种语言，按 `L` 循环切换：
 
 于是我做了 Argus。
 
-它不是任务管理工具，不是番茄钟。它是一个**被动的、始终运行的镜子**，简单地记录你在做什么——每5秒、无提示、无摩擦——然后让你回头看看真相。
+它不是任务管理工具，不是番茄钟。它是一面**被动、始终运行的镜子**，简单地记录你在做什么——每 5 秒、无提示、无摩擦——然后让你回头看看真相。
 
-### 为什么要自己造轮子？
+**为什么不用现成的工具？** RescueTime、ActivityWatch、Toggl —— 我都试过。每个都有我不想接受的东西：云端依赖、订阅费用、Linux 支持不完善、没有终端界面。我想要一个本地运行、永不间断、无摩擦的工具。Argus 就是那个工具。
 
-我评估过现有工具：RescueTime、ActivityWatch、Toggl。它们都不错，但每个都有我不想要的东西：
+**这半年教会了我什么：** 约束本身就是特性。在清晨和周末的碎片时间里构建 Argus，意味着我无法过度工程化。简洁成为了哲学，而不仅仅是妥协。
 
-- 依赖云服务——我不想把所有窗口活动都发送到服务器
-- 订阅费用——对于一个我想永久运行的工具来说
-- Linux 支持不足——大多数没有一流的 Linux 支持
-- 没有 TUI——我生活在终端里
+---
 
-Argus 是我想要的工具：**本地专用、跨平台、零成本、终端原生。** 它在 Windows、macOS 或 Linux 的后台安静运行。数据永远不会离开你的机器。TUI 仪表盘由 Textual 驱动，实时刷新。周报能揭示你平时注意不到的模式。
+## 下载
 
-### 这半年教会了我什么
+### Linux
 
-在紧张的工作日程中独自开发六个月，教会了我一个意想不到的道理：**约束本身就是特性。** 在清晨和周末的碎片时间里构建 Argus，意味着我无法过度工程化。每一个决定都必须被证明是合理的。简洁成为了哲学，而不仅仅是妥协。
+从 [GitHub Releases 页面](https://github.com/boycececil666gmailcom/t1-pub-argus/releases/latest) 下载最新版本。
 
-结果是——我每天都在使用这个工具。现在，它开源了。
+```bash
+# 示例：下载并运行（将 X.Y.Z 替换为最新版本号）
+curl -L https://github.com/boycececil666gmailcom/t1-pub-argus/releases/download/vX.Y.Z/argus -o argus
+chmod +x argus
+./argus tui
+```
 
-> 如果你曾经好奇自己的时间去了哪里——[试试看吧](https://github.com/boycececil666/t1-pub-argus)。
+> **运行前需安装系统依赖：**
+> - Ubuntu / Debian: `sudo apt install xdotool xprintidle`
+> - Fedora: `sudo dnf install xdotool xprintidle`
 
 ---
 
@@ -300,13 +313,6 @@ Argus 是我想要的工具：**本地专用、跨平台、零成本、终端原
 ```bash
 # Download dist/argus.exe and run
 argus.exe tui
-```
-
-### macOS
-
-```bash
-# Download dist/argus and run
-./argus tui
 ```
 
 ### Linux
@@ -323,20 +329,19 @@ sudo dnf install xdotool xprintidle   # Fedora
 ### 然后
 
 ```bash
-# View today's activity report
-argus tui        # Interactive dashboard (recommended)
-argus report     # Text report in terminal
+argus tui        # 交互式仪表盘（推荐）
+argus report     # 终端内的文本报告
 
-# View specific day
+# 查看特定日期
 argus report --date 2026-04-05
 
-# View this week's report
+# 查看本周报告
 argus week
 
-# Check what you're doing right now
+# 查看当前正在做什么
 argus status
 
-# Auto-start on login
-argus install    # Enable auto-start
-argus uninstall  # Disable auto-start
+# 开机自动启动
+argus install    # 启用自动启动
+argus uninstall  # 禁用自动启动
 ```

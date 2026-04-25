@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version tag (e.g. v1.0.0)
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.prepare.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: prepare
+        name: Prepare
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          if [ -z "$VERSION" ] || [ "$VERSION" == "$GITHUB_REF" ]; then
+            VERSION="${{ inputs.version }}"
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "No version specified. Use a tag like v1.0.0 or provide the version input."
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-venv \
+            libgbm1 \
+            libnotify4 \
+            libnss3 \
+            libxss1 \
+            libxslt1.1 \
+            libasound2 \
+            libxtst6 \
+            xdg-utils \
+            xdotool \
+            xprintidle
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Build Linux binary
+        run: python build.py
+
+      - name: Make executable
+        run: chmod +x dist/argus
+
+      - name: Rename Linux binary with version
+        run: mv dist/argus "dist/argus-${{ steps.prepare.outputs.version }}-linux-x86_64"
+
+      - name: Create Windows build on matrix (using Docker)
+        run: |
+          echo "Windows build note: Windows binaries are built locally or via the build.yml workflow."
+          echo "Upload Linux binary only for now."
+
+      - name: Upload Linux binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare.outputs.version }}
+          name: Release ${{ steps.prepare.outputs.version }}
+          draft: true
+          prerelease: false
+          files: |
+            dist/argus-${{ steps.prepare.outputs.version }}-linux-x86_64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,7 +14,6 @@ Usage:
 
 Platform support:
   Windows  — registry Run key          (no extra tools needed)
-  macOS    — LaunchAgent plist         (no extra tools needed)
   Linux    — XDG autostart .desktop    (no extra tools needed)
              Tracking requires: sudo apt install xdotool xprintidle
 """
